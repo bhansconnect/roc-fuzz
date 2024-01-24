@@ -2,3 +2,8 @@ build
 
 platform/*.a
 platform/*.o
+
+examples/basic
+
+*.ll
+

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-mkdir build
+mkdir -p build
 
 # TODO: deal with multiple platforms.
 
