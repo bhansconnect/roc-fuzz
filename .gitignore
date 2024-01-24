@@ -1,0 +1,4 @@
+build
+
+platform/*.a
+platform/*.o
