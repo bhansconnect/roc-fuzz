@@ -4,28 +4,22 @@ app "basic"
     }
     imports [
         fuzz.Fuzz.{ Status, Target },
-        fuzz.Arbitrary.{ Generator, andThen },
+        fuzz.Arbitrary.{ Generator },
     ]
     provides [target] to fuzz
 
-target : Target (Str, U8)
+target : Target Str
 target = {
     generator,
     test,
 }
 
-generator : Generator (Str, U8)
-generator =
-    str <- Arbitrary.string |> andThen
-    n <- Arbitrary.u8 |> andThen
-    Arbitrary.value (str, n)
+generator : Generator Str
+generator = Arbitrary.string
 
-test : (Str, U8) -> Status
-test = \(str, n) ->
-    if Str.startsWith str "FUZZ" && n == 42 then
+test : Str -> Status
+test = \str ->
+    if Str.startsWith str "Hi" then
         crash "this should be impossible"
-    else if Str.startsWith str "Q" then
-        # All cases that start with 'Q' are invalid. Ignore them.
-        Ignore
     else
         Success
