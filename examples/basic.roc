@@ -3,29 +3,32 @@ app "basic"
         fuzz: "../platform/main.roc",
     }
     imports [
-        fuzz.Fuzz.{ Status },
+        fuzz.Fuzz.{ Status, Target },
+        fuzz.Arbitrary.{ Generator, andThen },
     ]
-    provides [main] to fuzz
+    provides [target] to fuzz
 
-main : List U8 -> Status
-main = \data ->
-    when List.get data 0 is
-        Ok 'F' ->
-            when List.get data 1 is
-                Ok 'U' ->
-                    when List.get data 2 is
-                        Ok 'Z' ->
-                            when List.get data 3 is
-                                Ok 'Z' ->
-                                    crash "This should be impossible"
-                                _ ->
-                                    Success
-                        _ ->
-                            Success
-                _ ->
-                    Success
-        Ok 'Q' ->
-            # We don't want any inputs starting with 'Q'
+target : Target (U8, U8, U8, U8)
+target = {
+    generator,
+    test,
+}
+
+generator : Generator (U8, U8, U8, U8)
+generator =
+    a <- Arbitrary.u8 |> andThen
+    b <- Arbitrary.u8 |> andThen
+    c <- Arbitrary.u8 |> andThen
+    d <- Arbitrary.u8 |> andThen
+    Arbitrary.value (a, b, c, d)
+
+test = \data ->
+    when data is
+        ('F', 'U', 'Z', 'Z') ->
+            crash "this should be impossible"
+
+        ('Q', _, _, _) ->
             Ignore
+
         _ ->
             Success

@@ -1,16 +1,19 @@
 platform "roc-fuzz"
-    requires {} { main : List U8 -> Status }
+    requires {} { target : Fuzz.Target a }
     exposes [
         Fuzz,
+        Arbitrary,
     ]
     packages {}
-    imports [Fuzz.{ Status }]
+    imports [
+        Arbitrary,
+        Fuzz,
+    ]
     provides [mainForHost]
 
-
-
 mainForHost : List U8 -> I8
-mainForHost = \x ->
-    when main x is
+mainForHost = \bytes ->
+    data = Arbitrary.generate bytes target.generator
+    when target.test data is
         Success -> 0
         Ignore -> -1
