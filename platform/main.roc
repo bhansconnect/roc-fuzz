@@ -13,6 +13,7 @@ platform "roc-fuzz"
 
 Command : [
     Fuzz,
+    Name,
     Show,
 ]
 
@@ -27,6 +28,9 @@ mainForHost = \bytes, cmd ->
 
                 Ignore ->
                     ([], -1)
+
+        Name ->
+            (Str.toUtf8 target.name, 0)
 
         Show ->
             data = Arbitrary.generate bytes target.generator

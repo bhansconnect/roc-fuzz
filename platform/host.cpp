@@ -2,8 +2,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <string_view>
+#include <vector>
 
 extern "C" int LLVMFuzzerRunDriver(const int *argc, const char ***argv,
                                    int (*UserCb)(const uint8_t *Data,
@@ -24,7 +26,8 @@ extern "C" void roc__mainForHost_1_exposed_generic(Out *out, RocList *data,
                                                    uint8_t command);
 
 const uint8_t CMD_FUZZ = 0;
-const uint8_t CMD_SHOW = 1;
+const uint8_t CMD_NAME = 1;
+const uint8_t CMD_SHOW = 2;
 
 const size_t SLICE_BIT = static_cast<size_t>(1) << (8 * sizeof(size_t) - 1);
 const size_t REFCOUNT_MAX = 0;
@@ -32,22 +35,61 @@ const size_t REFCOUNT_MAX = 0;
 int fuzz_target(const uint8_t *data, size_t size);
 std::vector<uint8_t> read_file(char const *filename);
 
+int call_libfuzzer(std::vector<const char *> args) {
+  int argc = static_cast<int>(args.size());
+  const char **argv = args.data();
+
+  return LLVMFuzzerRunDriver(&argc, &argv, &fuzz_target);
+}
+
 int main(int argc, char **argv) {
   argparse::ArgumentParser program("fuzz-target");
 
-  // git add subparser
   argparse::ArgumentParser fuzz_command("fuzz");
   fuzz_command.add_description("Run the fuzz target and attempt to find bugs");
+  fuzz_command.add_argument("-c", "--corpus")
+      .help("The directory where the corpus stored. Defaults to "
+            "\"corpus/<target-name>\".");
 
-  // git commit subparser
+  argparse::ArgumentParser minimize_command("minimize");
+  minimize_command.add_description(
+      "Attempt to minimize a test case to the smallest possible input");
+  minimize_command.add_argument("file")
+      .help("File of raw bytes to be minimized")
+      .required();
+
   argparse::ArgumentParser show_command("show");
   show_command.add_description("Show the crash or test case inputs");
   show_command.add_argument("file")
       .help("File of raw bytes to be formatted and printed")
       .required();
 
+  argparse::ArgumentParser raw_command("raw");
+  raw_command.add_description(
+      "Allows raw access to the underlying libFuzzer cli");
+
   program.add_subparser(fuzz_command);
+  program.add_subparser(minimize_command);
   program.add_subparser(show_command);
+  program.add_subparser(raw_command);
+
+  // No subcommand. Earrly exit with help menu.
+  if (argc < 2) {
+    std::cerr << program;
+    return 1;
+  }
+
+  // The raw subcommand doesn't seem to work correctly... just manually handle
+  // it.
+  auto lib_fuzzer_cli = std::string(argv[0]) + " raw";
+  if (std::string(argv[1]) == "raw") {
+    std::vector<const char *> fuzz_args = {lib_fuzzer_cli.c_str()};
+    fuzz_args.reserve(static_cast<size_t>(argc - 2));
+    for (int i = 2; i < argc; ++i) {
+      fuzz_args.push_back(argv[i]);
+    }
+    return call_libfuzzer(fuzz_args);
+  }
 
   try {
     program.parse_args(argc, argv);
@@ -55,8 +97,12 @@ int main(int argc, char **argv) {
     std::cerr << err.what() << '\n' << std::endl;
     if (program.is_subcommand_used(fuzz_command)) {
       std::cerr << fuzz_command;
+    } else if (program.is_subcommand_used(minimize_command)) {
+      std::cerr << minimize_command;
     } else if (program.is_subcommand_used(show_command)) {
       std::cerr << show_command;
+    } else if (program.is_subcommand_used(raw_command)) {
+      std::cerr << raw_command;
     } else {
       std::cerr << program;
     }
@@ -64,12 +110,37 @@ int main(int argc, char **argv) {
   }
 
   if (program.is_subcommand_used(fuzz_command)) {
-    std::vector<const char *> fuzz_args = {argv[0]};
+    std::filesystem::path corpus;
+    if (fuzz_command.is_used("-c")) {
+      corpus = fuzz_command.get<std::string>("-c");
+    } else {
+      auto input = RocList{nullptr, 0, 0};
+      Out out;
+      roc__mainForHost_1_exposed_generic(&out, &input, CMD_NAME);
 
-    int fuzz_argc = static_cast<int>(fuzz_args.size());
-    const char **fuzz_argv = fuzz_args.data();
+      auto name = std::string_view(
+          reinterpret_cast<const char *>(out.list.bytes), out.list.len);
+      corpus = "corpus";
+      corpus = corpus / name;
+    }
+    std::filesystem::create_directories(corpus);
 
-    return LLVMFuzzerRunDriver(&fuzz_argc, &fuzz_argv, &fuzz_target);
+    std::string artifact_path = "-artifact_prefix=" + (corpus / "").string();
+    std::vector<const char *> fuzz_args = {
+        lib_fuzzer_cli.c_str(), artifact_path.c_str(), corpus.c_str()};
+
+    return call_libfuzzer(fuzz_args);
+  } else if (program.is_subcommand_used(minimize_command)) {
+    auto filename = minimize_command.get<std::string>("file");
+    std::filesystem::path file_path = filename;
+
+    std::string artifact_path =
+        "-artifact_prefix=" + (file_path.remove_filename() / "").string();
+    std::vector<const char *> fuzz_args = {
+        lib_fuzzer_cli.c_str(), "-max_total_time=60", "-minimize_crash=1",
+        artifact_path.c_str(), filename.c_str()};
+
+    return call_libfuzzer(fuzz_args);
   } else if (program.is_subcommand_used(show_command)) {
     auto filename = show_command.get<std::string>("file");
     auto bytes = read_file(filename.c_str());
@@ -82,10 +153,9 @@ int main(int argc, char **argv) {
     Out out;
     roc__mainForHost_1_exposed_generic(&out, &input, CMD_SHOW);
 
-    std::cout << std::string_view(
-                     reinterpret_cast<const char *>(out.list.bytes),
-                     out.list.len)
-              << std::endl;
+    auto msg = std::string_view(reinterpret_cast<const char *>(out.list.bytes),
+                                out.list.len);
+    std::cout << msg << std::endl;
   } else {
     std::cerr << program;
   }

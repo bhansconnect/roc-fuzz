@@ -10,6 +10,7 @@ app "basic"
 
 target : Target Str
 target = {
+    name: "basic",
     generator,
     test,
 }

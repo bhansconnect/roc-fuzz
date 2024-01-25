@@ -7,6 +7,7 @@ interface Fuzz
 Status : [Success, Ignore]
 
 Target a : {
+    name : Str,
     generator : Generator a,
     test : a -> Status,
 }
