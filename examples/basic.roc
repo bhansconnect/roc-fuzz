@@ -20,6 +20,7 @@ generator =
     n <- Arbitrary.u8 |> andThen
     Arbitrary.value (bytes, n)
 
+test : (List U8, U8) -> Status
 test = \data ->
     when data is
         (['F', 'U', 'Z', 'Z', ..], 42) ->
