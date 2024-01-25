@@ -33,7 +33,6 @@ int fuzz_target(const uint8_t *data, size_t size);
 std::vector<uint8_t> read_file(char const *filename);
 
 int main(int argc, char **argv) {
-  // TODO: add a way to pretty print the input.
   argparse::ArgumentParser program("fuzz-target");
 
   // git add subparser
