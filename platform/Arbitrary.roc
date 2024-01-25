@@ -8,6 +8,7 @@ interface Arbitrary
         custom,
         value,
         bytes,
+        string,
         u8,
     ]
     imports []
@@ -65,6 +66,36 @@ expect
         [2, 4, 5, 6, 9, 27]
         |> generate bytes
     res == [2, 4, 5]
+
+string : Generator Str
+string = @Generator \state ->
+    (size, @State data) = byteSize state
+    { before: fullBytes, others: fullRest } = List.split data (Num.toNat size)
+    when Str.fromUtf8 fullBytes is
+        Ok str ->
+            (str, @State fullRest)
+
+        Err (BadUtf8 _ goodSize) ->
+            # Even though this failed, we can still parse the utf8 up to this size.
+            # we didn't use all bytes, so reclaim some of them.
+            { before: retryBytes, others: retryRest } = List.split data goodSize
+            when Str.fromUtf8 retryBytes is
+                Ok str ->
+                    (str, @State retryRest)
+
+                Err _ -> crash "This subset of the string should be valid for conversion to utf8"
+
+expect
+    res =
+        ['a', 'b', 'c', 6, 9, 27]
+        |> generate string
+    res == "abc"
+
+expect
+    res =
+        ['a', 'b', 255, 6, 9, 27]
+        |> generate string
+    res == "ab"
 
 # ===== Internal Helpers ======================================================
 
