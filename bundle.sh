@@ -5,7 +5,8 @@ mkdir -p build
 
 # TODO: deal with multiple platforms.
 
-clang++ -g -O1 -c \
+clang++ -std=c++17 -g -O1 -c \
+  -Wall -Wpedantic -Wsign-conversion -Wconversion -Werror -Wextra -Wno-unused-parameter \
   -fsanitize-coverage=inline-8bit-counters \
   -fsanitize-coverage=pc-table \
   -fsanitize-coverage=trace-cmp \
