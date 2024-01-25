@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   }
 
   if (program.is_subcommand_used(fuzz_command)) {
-    std::vector<const char *> fuzz_args = {"fuzz-target"};
+    std::vector<const char *> fuzz_args = {argv[0], "fuzz"};
 
     int fuzz_argc = static_cast<int>(fuzz_args.size());
     const char **fuzz_argv = fuzz_args.data();
