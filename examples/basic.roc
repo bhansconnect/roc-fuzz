@@ -8,27 +8,24 @@ app "basic"
     ]
     provides [target] to fuzz
 
-target : Target (List U8, U8)
+target : Target (Str, U8)
 target = {
     generator,
     test,
 }
 
-generator : Generator (List U8, U8)
+generator : Generator (Str, U8)
 generator =
-    bytes <- Arbitrary.bytes |> andThen
+    str <- Arbitrary.string |> andThen
     n <- Arbitrary.u8 |> andThen
-    Arbitrary.value (bytes, n)
+    Arbitrary.value (str, n)
 
-test : (List U8, U8) -> Status
-test = \data ->
-    when data is
-        (['F', 'U', 'Z', 'Z', ..], 42) ->
-            crash "this should be impossible"
-
-        (['Q', ..], _) ->
-            # All cases that start with 'Q' are invalid. Ignore them.
-            Ignore
-
-        _ ->
-            Success
+test : (Str, U8) -> Status
+test = \(str, n) ->
+    if Str.startsWith str "FUZZ" && n == 42 then
+        crash "this should be impossible"
+    else if Str.startsWith str "Q" then
+        # All cases that start with 'Q' are invalid. Ignore them.
+        Ignore
+    else
+        Success
