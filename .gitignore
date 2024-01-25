@@ -1,11 +1,13 @@
 build
 
-platform/*.a
-
 examples/basic
+
+platform/*.a
 
 *.ll
 *.o
+
+.cache
 
 crash-*
 corpus

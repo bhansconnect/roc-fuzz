@@ -1,16 +1,19 @@
-#!/bin/sh
-set -e
+#!/bin/bash
+set -euo pipefail
+
+cd $(dirname "${BASH_SOURCE[0]}")/..
 
 mkdir -p build
 
 # TODO: deal with multiple platforms.
 
-clang++ -std=c++17 -g -O1 -c \
+clang++ -std=c++17 -g -O1 \
   -Wall -Wpedantic -Wsign-conversion -Wconversion -Werror -Wextra -Wno-unused-parameter \
   -fsanitize-coverage=inline-8bit-counters \
   -fsanitize-coverage=pc-table \
   -fsanitize-coverage=trace-cmp \
-  platform/host.cpp -o build/platform.o
+  -I vendor \
+  platform/host.cpp -c -o build/platform.o
 
 cp vendor/libclang_rt.fuzzer_no_main_osx.arm64.a platform/macos-arm64.a
 
