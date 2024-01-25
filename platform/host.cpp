@@ -54,6 +54,6 @@ extern "C" void roc_dealloc(void *ptr, unsigned int _alignment) {
   std::free(ptr);
 }
 
-extern "C" void roc_panic(void *msg, unsigned int _tag) {}
+extern "C" void roc_panic(void *msg, unsigned int _tag) { std::abort(); }
 
 extern "C" void roc_dbg(void *loc, void *msg, void *src) { return; }
