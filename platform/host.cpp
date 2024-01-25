@@ -25,11 +25,6 @@ int fuzz_target(const uint8_t *data, size_t size) {
 
   uint8_t out;
   roc__mainForHost_1_exposed_generic(&out, &input);
-  if (out == 1) {
-    // 1 is a failure.
-    // abort so the fuzzer considers it a failure.
-    std::abort();
-  }
   return out;
 }
 

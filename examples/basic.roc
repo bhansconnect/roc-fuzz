@@ -17,12 +17,15 @@ main = \data ->
                         Ok 'Z' ->
                             when List.get data 3 is
                                 Ok 'Z' ->
-                                    Failure
+                                    crash "This should be impossible"
                                 _ ->
                                     Success
                         _ ->
                             Success
                 _ ->
                     Success
+        Ok 'Q' ->
+            # We don't want any inputs starting with 'Q'
+            Ignore
         _ ->
             Success
