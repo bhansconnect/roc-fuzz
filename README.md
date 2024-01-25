@@ -15,3 +15,14 @@ ROC_LINK_FLAGS="-lc++" roc run --linker=legacy --fuzz --prebuilt-platform app.ro
 ```
 
 If running from distribution, `--prebuilt-platform` can be omitted.
+
+### Current TODOs
+
+1. Exposes runs and max_total_time in fuzz and minimize.
+1. Exposes control over jobs and dictionary.
+1. Exposes shrink corpus command.
+1. Expand arbitrary to all builtin types (also Arbitrary.raw to just get all of the bytes?).
+1. Add other helpers like Arbitrary.choose.
+1. Vendor and build for more architecture/os pairs.
+1. If possible, think of a way to enable seeding the corpus.
+1. Docs and tooling to make it awesome to use.

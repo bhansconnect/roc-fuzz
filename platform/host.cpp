@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
     std::string artifact_path =
         "-artifact_prefix=" + (file_path.remove_filename() / "").string();
     std::vector<const char *> fuzz_args = {
-        lib_fuzzer_cli.c_str(), "-max_total_time=60", "-minimize_crash=1",
+        lib_fuzzer_cli.c_str(), "-runs=10000", "-minimize_crash=1",
         artifact_path.c_str(), filename.c_str()};
 
     return call_libfuzzer(fuzz_args);
