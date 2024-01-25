@@ -23,8 +23,8 @@ struct Out {
 extern "C" void roc__mainForHost_1_exposed_generic(Out *out, RocList *data,
                                                    uint8_t command);
 
-const uint8_t CMD_FORMAT = 0;
-const uint8_t CMD_FUZZ = 1;
+const uint8_t CMD_FUZZ = 0;
+const uint8_t CMD_SHOW = 1;
 
 const size_t SLICE_BIT = static_cast<size_t>(1) << (8 * sizeof(size_t) - 1);
 const size_t REFCOUNT_MAX = 0;
@@ -40,15 +40,14 @@ int main(int argc, char **argv) {
   fuzz_command.add_description("Run the fuzz target and attempt to find bugs");
 
   // git commit subparser
-  argparse::ArgumentParser fmt_command("fmt");
-  fmt_command.add_description(
-      "Format a crash or test case for viewing by the user");
-  fmt_command.add_argument("file")
+  argparse::ArgumentParser show_command("show");
+  show_command.add_description("Show the crash or test case inputs");
+  show_command.add_argument("file")
       .help("File of raw bytes to be formatted and printed")
       .required();
 
   program.add_subparser(fuzz_command);
-  program.add_subparser(fmt_command);
+  program.add_subparser(show_command);
 
   try {
     program.parse_args(argc, argv);
@@ -56,8 +55,8 @@ int main(int argc, char **argv) {
     std::cerr << err.what() << '\n' << std::endl;
     if (program.is_subcommand_used(fuzz_command)) {
       std::cerr << fuzz_command;
-    } else if (program.is_subcommand_used(fmt_command)) {
-      std::cerr << fmt_command;
+    } else if (program.is_subcommand_used(show_command)) {
+      std::cerr << show_command;
     } else {
       std::cerr << program;
     }
@@ -69,10 +68,10 @@ int main(int argc, char **argv) {
 
     int fuzz_argc = static_cast<int>(fuzz_args.size());
     const char **fuzz_argv = fuzz_args.data();
-    LLVMFuzzerRunDriver(&fuzz_argc, &fuzz_argv, &fuzz_target);
 
-  } else if (program.is_subcommand_used(fmt_command)) {
-    auto filename = fmt_command.get<std::string>("file");
+    return LLVMFuzzerRunDriver(&fuzz_argc, &fuzz_argv, &fuzz_target);
+  } else if (program.is_subcommand_used(show_command)) {
+    auto filename = show_command.get<std::string>("file");
     auto bytes = read_file(filename.c_str());
 
     // Create a seamless slice the references the passed in fuzz data.
@@ -81,7 +80,7 @@ int main(int argc, char **argv) {
     auto input = RocList{bytes.data(), bytes.size(), slice_bits};
 
     Out out;
-    roc__mainForHost_1_exposed_generic(&out, &input, CMD_FORMAT);
+    roc__mainForHost_1_exposed_generic(&out, &input, CMD_SHOW);
 
     std::cout << std::string_view(
                      reinterpret_cast<const char *>(out.list.bytes),
