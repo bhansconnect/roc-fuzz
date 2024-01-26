@@ -16,9 +16,15 @@ struct RocList {
   size_t len;
   size_t capacity;
 };
+struct RocStr {
+  const uint8_t *bytes;
+  size_t len;
+  size_t capacity;
 
+  std::string_view as_string_view();
+};
 struct Out {
-  RocList list;
+  RocStr str;
   uint8_t status;
 };
 
@@ -118,8 +124,7 @@ int main(int argc, char **argv) {
       Out out;
       roc__mainForHost_1_exposed_generic(&out, &input, CMD_NAME);
 
-      auto name = std::string_view(
-          reinterpret_cast<const char *>(out.list.bytes), out.list.len);
+      auto name = out.str.as_string_view();
       corpus = "corpus";
       corpus = corpus / name;
     }
@@ -153,9 +158,7 @@ int main(int argc, char **argv) {
     Out out;
     roc__mainForHost_1_exposed_generic(&out, &input, CMD_SHOW);
 
-    auto msg = std::string_view(reinterpret_cast<const char *>(out.list.bytes),
-                                out.list.len);
-    std::cout << msg << std::endl;
+    std::cout << out.str.as_string_view() << std::endl;
   } else {
     std::cerr << program;
   }
@@ -189,6 +192,20 @@ std::vector<uint8_t> read_file(char const *filename) {
   return result;
 }
 
+std::string_view RocStr::as_string_view() {
+  bool small_str = static_cast<ptrdiff_t>(this->len) < 0;
+  const char *data;
+  size_t len;
+  if (small_str) {
+    data = reinterpret_cast<const char *>(this);
+    len = static_cast<size_t>(data[sizeof(size_t) * 3 - 1] & 0x7F);
+  } else {
+    data = reinterpret_cast<const char *>(this->bytes);
+    len = this->len;
+  }
+  return {data, len};
+}
+
 /// ===== Roc Required Functions ==============================================
 // TODO: switch to arena allocation per request.
 extern "C" void *roc_alloc(size_t size, unsigned int _alignment) {
@@ -204,27 +221,8 @@ extern "C" void roc_dealloc(void *ptr, unsigned int _alignment) {
   std::free(ptr);
 }
 
-struct RocStr {
-  const uint8_t *bytes;
-  size_t len;
-  size_t capacity;
-};
 extern "C" void roc_panic(RocStr *msg, unsigned int _tag) {
-  bool small_str = static_cast<ptrdiff_t>(msg->len) < 0;
-  const char *data;
-  size_t len;
-  if (small_str) {
-    data = reinterpret_cast<const char *>(&msg);
-    len = static_cast<size_t>(data[sizeof(size_t) * 3 - 1] & 0x7F);
-  } else {
-    data = reinterpret_cast<const char *>(msg->bytes);
-    len = msg->len;
-  }
-  std::cerr << "Roc panicked: ";
-  for (size_t i = 0; i < len; ++i) {
-    std::cerr << data[i];
-  }
-  std::cerr << std::endl;
+  std::cerr << "Roc panicked: " << msg->as_string_view() << std::endl;
   std::abort();
 }
 

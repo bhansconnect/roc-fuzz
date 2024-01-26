@@ -18,7 +18,7 @@ Command : [
     Show,
 ]
 
-mainForHost : List U8, Command -> (List U8, I8)
+mainForHost : List U8, Command -> (Str, I8)
 mainForHost = \bytes, cmd ->
     res = Generate.apply bytes Arbitrary.arbitrary
     when cmd is
@@ -27,22 +27,22 @@ mainForHost = \bytes, cmd ->
                 Ok data ->
                     when target.test data is
                         Success ->
-                            ([], 0)
+                            ("", 0)
 
                         Ignore ->
-                            ([], -1)
+                            ("", -1)
 
                 Err _ ->
-                    ([], -1)
+                    ("", -1)
 
         Name ->
-            (Str.toUtf8 target.name, 0)
+            (target.name, 0)
 
         Show ->
             when res is
                 Ok data ->
                     str = Inspect.toStr data
-                    (Str.toUtf8 str, 0)
+                    (str, 0)
 
                 Err _ ->
                     crash "Failed to generate data from test case"
