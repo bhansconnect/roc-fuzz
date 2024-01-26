@@ -5,7 +5,6 @@ interface Size
         andAll,
         or,
         orAll,
-        fromBytes,
     ]
     imports [
     ]
@@ -14,21 +13,16 @@ interface Size
 # Looking over their code, the max size is not really used much in practicea and this simplifies the api.
 
 ## A rough estimate of the minimum number of bytes required to generate a type.
-Hint := U64
-
-fromBytes = @Hint
+Hint : U64
 
 and : Hint, Hint -> Hint
-and = \@Hint lhs, @Hint rhs ->
-    @Hint (lhs + rhs)
+and = \lhs, rhs -> lhs + rhs
 
 andAll : List Hint -> Hint
-andAll = \list ->
-    List.walk list (@Hint 0) and
+andAll = \list -> List.walk list 0 and
 
 or : Hint, Hint -> Hint
-or = \@Hint lhs, @Hint rhs ->
-    @Hint (Num.min lhs rhs)
+or = \lhs, rhs -> Num.min lhs rhs
 
 orAll : List Hint -> Hint
 orAll = \list ->
@@ -37,4 +31,4 @@ orAll = \list ->
             List.walk list head or
 
         [] ->
-            @Hint 0
+            0

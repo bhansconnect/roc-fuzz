@@ -49,8 +49,7 @@ arbitraryU8 =
     |> Generate.map @ArbitraryU8
 
 sizeHintU8 : Phantom ArbitraryU8, U64 -> Size.Hint
-sizeHintU8 = \_, _ ->
-    Size.fromBytes 1
+sizeHintU8 = \_, _ -> 1
 
 ArbitraryStr := Str implements [
         Arbitrary {
@@ -70,8 +69,7 @@ arbitraryStr =
     |> Generate.map @ArbitraryStr
 
 sizeHintStr : Phantom ArbitraryStr, U64 -> Size.Hint
-sizeHintStr = \_, _ ->
-    Size.fromBytes 0
+sizeHintStr = \_, _ -> 0
 
 ArbitraryBytes := List U8 implements [
         Arbitrary {
@@ -91,6 +89,5 @@ arbitraryBytes =
     |> Generate.map @ArbitraryBytes
 
 sizeHintBytes : Phantom ArbitraryBytes, U64 -> Size.Hint
-sizeHintBytes = \_, _ ->
-    Size.fromBytes 0
+sizeHintBytes = \_, _ -> 0
 
