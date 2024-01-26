@@ -12,7 +12,7 @@ extern "C" int LLVMFuzzerRunDriver(const int *argc, const char ***argv,
                                                  size_t Size));
 
 struct RocList {
-  uint8_t const *bytes;
+  const uint8_t *bytes;
   size_t len;
   size_t capacity;
 };
@@ -204,6 +204,28 @@ extern "C" void roc_dealloc(void *ptr, unsigned int _alignment) {
   std::free(ptr);
 }
 
-extern "C" void roc_panic(void *msg, unsigned int _tag) { std::abort(); }
+struct RocStr {
+  const uint8_t *bytes;
+  size_t len;
+  size_t capacity;
+};
+extern "C" void roc_panic(RocStr *msg, unsigned int _tag) {
+  bool small_str = static_cast<ptrdiff_t>(msg->len) < 0;
+  const char *data;
+  size_t len;
+  if (small_str) {
+    data = reinterpret_cast<const char *>(&msg);
+    len = static_cast<size_t>(data[sizeof(size_t) * 3 - 1] & 0x7F);
+  } else {
+    data = reinterpret_cast<const char *>(msg->bytes);
+    len = msg->len;
+  }
+  std::cerr << "Roc panicked: ";
+  for (size_t i = 0; i < len; ++i) {
+    std::cerr << data[i];
+  }
+  std::cerr << std::endl;
+  std::abort();
+}
 
 extern "C" void roc_dbg(void *loc, void *msg, void *src) { return; }

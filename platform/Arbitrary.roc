@@ -15,6 +15,8 @@ interface Arbitrary
         custom,
         ArbitraryU8,
         unwrapU8,
+        ArbitraryStr,
+        unwrapStr,
         # value,
         # bytes,
         # string,
@@ -89,6 +91,52 @@ sizeHintU8 : Phantom ArbitraryU8, U64 -> Size.Hint
 sizeHintU8 = \_, _ ->
     Size.fromBytes 1
 
+ArbitraryStr := Str implements [
+        Arbitrary {
+            arbitrary: arbitraryStr,
+            sizeHint: sizeHintStr,
+        },
+        Eq,
+        Hash,
+    ]
+
+unwrapStr : ArbitraryStr -> Str
+unwrapStr = \@ArbitraryStr x -> x
+
+arbitraryStr : Generator ArbitraryStr
+arbitraryStr = @Generator \state ->
+    (size, @State data) = byteSize state
+    { before: fullBytes, others: fullRest } = List.split data (Num.toNat size)
+    when Str.fromUtf8 fullBytes is
+        Ok str ->
+            Ok (@ArbitraryStr str, @State fullRest)
+
+        Err (BadUtf8 _ goodSize) ->
+            # Even though this failed, we can still parse the utf8 up to this size.
+            # we didn't use all bytes, so reclaim some of them.
+            { before: retryBytes, others: retryRest } = List.split data goodSize
+            when Str.fromUtf8 retryBytes is
+                Ok str ->
+                    Ok (@ArbitraryStr str, @State retryRest)
+
+                Err _ -> crash "This subset of the string should be valid for conversion to utf8"
+
+sizeHintStr : Phantom ArbitraryStr, U64 -> Size.Hint
+sizeHintStr = \_, _ ->
+    Size.fromBytes 0
+
+expect
+    res =
+        ['a', 'b', 'c', 6, 9, 27]
+        |> apply
+    res == "abc" |> @ArbitraryStr |> Ok
+
+expect
+    res =
+        ['a', 'b', 255, 6, 9, 27]
+        |> apply
+    res == "ab" |> @ArbitraryStr |> Ok
+
 # # ===== Primitive Generators ==================================================
 
 # value : a -> Generator a
@@ -107,36 +155,6 @@ sizeHintU8 = \_, _ ->
 #         [2, 4, 5, 6, 9, 27]
 #         |> generate bytes
 #     res == [2, 4, 5]
-
-# string : Generator Str
-# string = @Generator \state ->
-#     (size, @State data) = byteSize state
-#     { before: fullBytes, others: fullRest } = List.split data (Num.toNat size)
-#     when Str.fromUtf8 fullBytes is
-#         Ok str ->
-#             (str, @State fullRest)
-
-#         Err (BadUtf8 _ goodSize) ->
-#             # Even though this failed, we can still parse the utf8 up to this size.
-#             # we didn't use all bytes, so reclaim some of them.
-#             { before: retryBytes, others: retryRest } = List.split data goodSize
-#             when Str.fromUtf8 retryBytes is
-#                 Ok str ->
-#                     (str, @State retryRest)
-
-#                 Err _ -> crash "This subset of the string should be valid for conversion to utf8"
-
-# expect
-#     res =
-#         ['a', 'b', 'c', 6, 9, 27]
-#         |> generate string
-#     res == "abc"
-
-# expect
-#     res =
-#         ['a', 'b', 255, 6, 9, 27]
-#         |> generate string
-#     res == "ab"
 
 # ===== Internal Helpers ======================================================
 

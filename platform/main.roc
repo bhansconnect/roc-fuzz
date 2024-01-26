@@ -44,5 +44,5 @@ mainForHost = \bytes, cmd ->
                     (Str.toUtf8 str, 0)
 
                 Err _ ->
-                    ([], -1)
+                    crash "Failed to generate data from test case"
 
