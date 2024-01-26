@@ -17,10 +17,8 @@ interface Arbitrary
         unwrapU8,
         ArbitraryStr,
         unwrapStr,
-        # value,
-        # bytes,
-        # string,
-        # u8,
+        ArbitraryBytes,
+        unwrapBytes,
     ]
     imports [
         Size,
@@ -67,6 +65,8 @@ map = \@Generator first, transform ->
     @Generator \state ->
         (val, next) <- first state |> Result.map
         (transform val, next)
+
+# ===== Primitive Implementations =============================================
 
 ArbitraryU8 := U8 implements [
         Arbitrary {
@@ -137,24 +137,33 @@ expect
         |> apply
     res == "ab" |> @ArbitraryStr |> Ok
 
-# # ===== Primitive Generators ==================================================
+ArbitraryBytes := List U8 implements [
+        Arbitrary {
+            arbitrary: arbitraryBytes,
+            sizeHint: sizeHintBytes,
+        },
+        Eq,
+        Hash,
+    ]
 
-# value : a -> Generator a
-# value = \val ->
-#     @Generator \state ->
-#         (val, state)
+unwrapBytes : ArbitraryBytes -> List U8
+unwrapBytes = \@ArbitraryBytes x -> x
 
-# bytes : Generator (List U8)
-# bytes = @Generator \state ->
-#     (size, @State data) = byteSize state
-#     { before, others: rest } = List.split data (Num.toNat size)
-#     (before, @State rest)
+arbitraryBytes : Generator ArbitraryBytes
+arbitraryBytes = @Generator \state ->
+    (size, @State data) = byteSize state
+    { before, others: rest } = List.split data (Num.toNat size)
+    Ok (@ArbitraryBytes before, @State rest)
 
-# expect
-#     res =
-#         [2, 4, 5, 6, 9, 27]
-#         |> generate bytes
-#     res == [2, 4, 5]
+sizeHintBytes : Phantom ArbitraryBytes, U64 -> Size.Hint
+sizeHintBytes = \_, _ ->
+    Size.fromBytes 0
+
+expect
+    res =
+        [2, 4, 5, 6, 9, 27]
+        |> apply
+    res == [2, 4, 5] |> @ArbitraryBytes |> Ok
 
 # ===== Internal Helpers ======================================================
 
