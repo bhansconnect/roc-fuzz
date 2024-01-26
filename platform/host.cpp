@@ -58,7 +58,8 @@ int main(int argc, char **argv) {
   fuzz_command.add_description("Run the fuzz target and attempt to find bugs.");
   fuzz_command.add_argument("-c", "--corpus")
       .help("The directory where the corpus stored.")
-      .default_value(std::string(DEFAULT_CORPUS));
+      .default_value(std::string(DEFAULT_CORPUS))
+      .nargs(1);
   auto &fuzz_for = fuzz_command.add_mutually_exclusive_group(false);
   fuzz_for.add_argument("-t", "--total-timeout")
       .help("How long in seconds to run fuzzing for.")
@@ -80,7 +81,8 @@ int main(int argc, char **argv) {
   uint32_t DEFAULT_TEST_TIMEOUT = 1;
   fuzz_command.add_argument("--test-timeout")
       .help("Timeout for an individual fuzz test in seconds. Fuzz tests "
-            "should be fast. Use `--optimize` instead of increasing this.")
+            "should be fast.\nUse `--optimize` and prefer shorter tests before "
+            "increasing this.")
       .default_value<uint32_t>(std::move(DEFAULT_TEST_TIMEOUT))
       .scan<'u', uint32_t>()
       .nargs(1);
@@ -106,10 +108,10 @@ int main(int argc, char **argv) {
   minimize_command.add_argument("file")
       .help("File of raw bytes to be minimized.")
       .required();
-  // TODO: Evaluate if Go's aggressive timeout makes sense for Roc:
   minimize_command.add_argument("--test-timeout")
       .help("Timeout for an individual fuzz test in seconds. Fuzz tests "
-            "should be fast. Use `--optimize` instead of increasing this.")
+            "should be fast.\nUse `--optimize` and prefer shorter tests before "
+            "increasing this.")
       .default_value<uint32_t>(std::move(DEFAULT_TEST_TIMEOUT))
       .scan<'u', uint32_t>()
       .nargs(1);
@@ -126,7 +128,8 @@ int main(int argc, char **argv) {
       "coverage.");
   reduce_corpus_command.add_argument("-c", "--corpus")
       .help("The directory where the corpus stored.")
-      .default_value(std::string(DEFAULT_CORPUS));
+      .default_value(std::string(DEFAULT_CORPUS))
+      .nargs(1);
 
   argparse::ArgumentParser raw_command("raw");
   raw_command.add_description(
