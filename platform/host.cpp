@@ -244,18 +244,18 @@ int main(int argc, char **argv) {
 
     std::cout << out.str.as_string_view() << std::endl;
   } else if (program.is_subcommand_used(reduce_corpus_command)) {
-    std::filesystem::path corpus =
-        reduce_corpus_command.get<std::string>("-c");
+    std::filesystem::path corpus = reduce_corpus_command.get<std::string>("-c");
 
     // TODO: get random temp dir.
     std::filesystem::path tmp = corpus.parent_path() / "merging";
     std::filesystem::create_directories(tmp);
     std::filesystem::create_directories(corpus);
 
-    std::string fuzz_cmd = lib_fuzzer_cli + " " + "-merge=1" + " " +tmp.c_str()+" " +corpus.c_str();
+    std::string fuzz_cmd = lib_fuzzer_cli + " " + "-merge=1" + " " +
+                           tmp.c_str() + " " + corpus.c_str();
 
     if (auto ret = std::system(fuzz_cmd.c_str())) {
-      std::cerr << "failed to run fuzzer command to reduce corpus" <<std::endl;
+      std::cerr << "failed to run fuzzer command to reduce corpus" << std::endl;
       return ret;
     }
 
