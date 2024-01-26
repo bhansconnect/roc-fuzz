@@ -1,13 +1,12 @@
 interface Fuzz
     exposes [Status, Target]
     imports [
-        Arbitrary.{ Generator },
+        Arbitrary.{ Arbitrary },
     ]
 
 Status : [Success, Ignore]
 
 Target a : {
     name : Str,
-    generator : Generator a,
     test : a -> Status,
-}
+} where a implements Arbitrary

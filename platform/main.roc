@@ -19,21 +19,30 @@ Command : [
 
 mainForHost : List U8, Command -> (List U8, I8)
 mainForHost = \bytes, cmd ->
+    res = Arbitrary.apply bytes
     when cmd is
         Fuzz ->
-            data = Arbitrary.generate bytes target.generator
-            when target.test data is
-                Success ->
-                    ([], 0)
+            when res is
+                Ok data ->
+                    when target.test data is
+                        Success ->
+                            ([], 0)
 
-                Ignore ->
+                        Ignore ->
+                            ([], -1)
+
+                Err _ ->
                     ([], -1)
 
         Name ->
             (Str.toUtf8 target.name, 0)
 
         Show ->
-            data = Arbitrary.generate bytes target.generator
-            str = Inspect.toStr data
-            (Str.toUtf8 str, 0)
+            when res is
+                Ok data ->
+                    str = Inspect.toStr data
+                    (Str.toUtf8 str, 0)
+
+                Err _ ->
+                    ([], -1)
 

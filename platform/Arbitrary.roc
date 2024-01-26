@@ -1,101 +1,142 @@
 interface Arbitrary
     exposes [
-        State,
+        Arbitrary,
+        arbitrary,
+        sizeHint,
         Generator,
+        State,
+        Error,
+        Phantom,
+        phantom,
+        apply,
         generate,
         andThen,
         map,
         custom,
-        value,
-        bytes,
-        string,
-        u8,
+        ArbitraryU8,
+        unwrapU8,
+        # value,
+        # bytes,
+        # string,
+        # u8,
     ]
-    imports []
+    imports [
+        Size,
+    ]
 
 State := List U8
 
-Generator a := State -> (a, State)
+Error : [EmptyChoose, NotEnoughData, IncorrectFormat]
+
+Phantom a := {}
+
+phantom : Phantom *
+phantom = @Phantom {}
+
+Arbitrary implements
+    arbitrary : Generator a where a implements Arbitrary
+    sizeHint : Phantom a, U64 -> Size.Hint where a implements Arbitrary
+
+Generator a := State -> Result (a, State) Error
 
 custom = @Generator
 
-generate : List U8, Generator a -> a
-generate = \data, @Generator gen ->
+apply : List U8 -> Result a Error where a implements Arbitrary
+apply = \data ->
+    (@Generator gen) = arbitrary
     data
     |> @State
     |> gen
-    |> .0
+    |> Result.map .0
+
+generate : (a -> Generator b) -> Generator b where a implements Arbitrary
+generate = \transform ->
+    andThen arbitrary transform
 
 andThen : Generator a, (a -> Generator b) -> Generator b
 andThen = \@Generator first, transform ->
     @Generator \state ->
-        (val, next) = first state
+        (val, next) <- first state |> Result.try
         (@Generator second) = transform val
         second next
 
 map : Generator a, (a -> b) -> Generator b
 map = \@Generator first, transform ->
     @Generator \state ->
-        (val, next) = first state
+        (val, next) <- first state |> Result.map
         (transform val, next)
 
-# ===== Primitive Generators ==================================================
+ArbitraryU8 := U8 implements [
+        Arbitrary {
+            arbitrary: arbitraryU8,
+            sizeHint: sizeHintU8,
+        },
+    ]
 
-value : a -> Generator a
-value = \val ->
-    @Generator \state ->
-        (val, state)
+unwrapU8 : ArbitraryU8 -> U8
+unwrapU8 = \@ArbitraryU8 x -> x
 
-u8 : Generator U8
-u8 = @Generator \@State data ->
-    when data is
+arbitraryU8 : Generator ArbitraryU8
+arbitraryU8 = @Generator \@State state ->
+    when state is
         [b0, .. as rest] ->
-            (b0, @State rest)
+            Ok (@ArbitraryU8 b0, @State rest)
 
         [] ->
-            (0, @State [])
+            Ok (@ArbitraryU8 0, @State [])
 
-bytes : Generator (List U8)
-bytes = @Generator \state ->
-    (size, @State data) = byteSize state
-    { before, others: rest } = List.split data (Num.toNat size)
-    (before, @State rest)
+sizeHintU8 : Phantom ArbitraryU8, U64 -> Size.Hint
+sizeHintU8 = \_, _ ->
+    Size.fromBytes 1
 
-expect
-    res =
-        [2, 4, 5, 6, 9, 27]
-        |> generate bytes
-    res == [2, 4, 5]
+# # ===== Primitive Generators ==================================================
 
-string : Generator Str
-string = @Generator \state ->
-    (size, @State data) = byteSize state
-    { before: fullBytes, others: fullRest } = List.split data (Num.toNat size)
-    when Str.fromUtf8 fullBytes is
-        Ok str ->
-            (str, @State fullRest)
+# value : a -> Generator a
+# value = \val ->
+#     @Generator \state ->
+#         (val, state)
 
-        Err (BadUtf8 _ goodSize) ->
-            # Even though this failed, we can still parse the utf8 up to this size.
-            # we didn't use all bytes, so reclaim some of them.
-            { before: retryBytes, others: retryRest } = List.split data goodSize
-            when Str.fromUtf8 retryBytes is
-                Ok str ->
-                    (str, @State retryRest)
+# bytes : Generator (List U8)
+# bytes = @Generator \state ->
+#     (size, @State data) = byteSize state
+#     { before, others: rest } = List.split data (Num.toNat size)
+#     (before, @State rest)
 
-                Err _ -> crash "This subset of the string should be valid for conversion to utf8"
+# expect
+#     res =
+#         [2, 4, 5, 6, 9, 27]
+#         |> generate bytes
+#     res == [2, 4, 5]
 
-expect
-    res =
-        ['a', 'b', 'c', 6, 9, 27]
-        |> generate string
-    res == "abc"
+# string : Generator Str
+# string = @Generator \state ->
+#     (size, @State data) = byteSize state
+#     { before: fullBytes, others: fullRest } = List.split data (Num.toNat size)
+#     when Str.fromUtf8 fullBytes is
+#         Ok str ->
+#             (str, @State fullRest)
 
-expect
-    res =
-        ['a', 'b', 255, 6, 9, 27]
-        |> generate string
-    res == "ab"
+#         Err (BadUtf8 _ goodSize) ->
+#             # Even though this failed, we can still parse the utf8 up to this size.
+#             # we didn't use all bytes, so reclaim some of them.
+#             { before: retryBytes, others: retryRest } = List.split data goodSize
+#             when Str.fromUtf8 retryBytes is
+#                 Ok str ->
+#                     (str, @State retryRest)
+
+#                 Err _ -> crash "This subset of the string should be valid for conversion to utf8"
+
+# expect
+#     res =
+#         ['a', 'b', 'c', 6, 9, 27]
+#         |> generate string
+#     res == "abc"
+
+# expect
+#     res =
+#         ['a', 'b', 255, 6, 9, 27]
+#         |> generate string
+#     res == "ab"
 
 # ===== Internal Helpers ======================================================
 

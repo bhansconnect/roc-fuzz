@@ -4,23 +4,23 @@ app "basic"
     }
     imports [
         fuzz.Fuzz.{ Status, Target },
-        fuzz.Arbitrary.{ Generator },
+        fuzz.Arbitrary.{ ArbitraryU8, unwrapU8 },
     ]
     provides [target] to fuzz
 
-target : Target Str
+target : Target ArbitraryU8
 target = {
     name: "basic",
-    generator,
     test,
 }
 
-generator : Generator Str
-generator = Arbitrary.string
-
-test : Str -> Status
-test = \str ->
-    if Str.startsWith str "Hi" then
+test : ArbitraryU8 -> Status
+test = \byte ->
+    if unwrapU8 byte == 'Q' then
         crash "this should be impossible"
     else
         Success
+# if Str.startsWith str "Hi" then
+#     crash "this should be impossible"
+# else
+#     Success
