@@ -22,16 +22,17 @@ MagicType a : {
     target : Fuzz.Target a,
     phantom : Arbitrary.Phantom a,
     gen : Generate.Generator a,
+} where a implements Arbitrary.Arbitrary
+
+m : MagicType _
+m = {
+    target,
+    phantom: Arbitrary.phantom,
+    gen: Arbitrary.arbitrary,
 }
 
 mainForHost : List U8, Command -> (Str, I8)
 mainForHost = \bytes, cmd ->
-    m : MagicType a
-    m = {
-        target,
-        phantom: Arbitrary.phantom,
-        gen: Arbitrary.arbitrary,
-    }
     when cmd is
         Fuzz ->
             # Early exit if we don't have enough bytes for the `Arbitrary`
