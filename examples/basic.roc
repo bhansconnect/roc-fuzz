@@ -17,7 +17,7 @@ target = {
 test : ArbitraryStr -> Status
 test = \data ->
     str = unwrapStr data
-    if Str.startsWith str "Hi" then
+    if Str.startsWith str "FUZZ" then
         crash "this should be impossible"
     else
         Success

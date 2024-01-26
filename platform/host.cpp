@@ -66,11 +66,20 @@ int main(int argc, char **argv) {
       .help("How many times to run the fuzz target total.")
       .scan<'u', uint32_t>()
       .nargs(1);
+  // I want to enable more, but libFuzzer then logs to file and is pretty
+  // opaque. It probably should be half of the number of cpu cores by default.
+  uint32_t DEFAULT_JOBS = 1;
+  fuzz_command.add_argument("-j", "--jobs")
+      .help("How many parallel fuzz jobs to run.")
+      .default_value<uint32_t>(std::move(DEFAULT_JOBS))
+      .scan<'u', uint32_t>()
+      .nargs(1);
   // TODO: Evaluate if Go's aggressive timeout makes sense for Roc:
+  uint32_t DEFAULT_TEST_TIMEOUT = 1;
   fuzz_command.add_argument("--test-timeout")
       .help("Timeout for an individual fuzz test in seconds. Fuzz tests "
             "should be fast. Use `--optimize` instead of increasing this.")
-      .default_value<uint32_t>(1)
+      .default_value<uint32_t>(std::move(DEFAULT_TEST_TIMEOUT))
       .scan<'u', uint32_t>()
       .nargs(1);
 
@@ -87,6 +96,11 @@ int main(int argc, char **argv) {
       .help("How many times to run the fuzz target while minimizing.")
       .scan<'u', uint32_t>()
       .nargs(1);
+  minimize_command.add_argument("-j", "--jobs")
+      .help("How many parallel fuzz jobs to run.")
+      .default_value<uint32_t>(std::move(DEFAULT_JOBS))
+      .scan<'u', uint32_t>()
+      .nargs(1);
   minimize_command.add_argument("file")
       .help("File of raw bytes to be minimized")
       .required();
@@ -94,7 +108,7 @@ int main(int argc, char **argv) {
   minimize_command.add_argument("--test-timeout")
       .help("Timeout for an individual fuzz test in seconds. Fuzz tests "
             "should be fast. Use `--optimize` instead of increasing this.")
-      .default_value<uint32_t>(1)
+      .default_value<uint32_t>(std::move(DEFAULT_TEST_TIMEOUT))
       .scan<'u', uint32_t>()
       .nargs(1);
 
@@ -167,20 +181,22 @@ int main(int argc, char **argv) {
     std::string artifact_path = "-artifact_prefix=" + (corpus / "").string();
     auto test_timeout = fuzz_command.get<uint32_t>("--test-timeout");
     auto test_timeout_str = "-timeout=" + std::to_string(test_timeout);
+    auto jobs = fuzz_command.get<uint32_t>("-j");
+    auto jobs_str = "-jobs=" + std::to_string(jobs);
     std::vector<const char *> fuzz_args = {
         lib_fuzzer_cli.c_str(), artifact_path.c_str(), test_timeout_str.c_str(),
-        corpus.c_str()};
+        jobs_str.c_str(), corpus.c_str()};
 
     std::string total_timeout_str = "-max_total_time=";
-    if(auto total_timeout = fuzz_command.present<uint32_t>("-t")) {
-        total_timeout_str += std::to_string(*total_timeout);
-        fuzz_args.push_back(total_timeout_str.c_str());
+    if (auto total_timeout = fuzz_command.present<uint32_t>("-t")) {
+      total_timeout_str += std::to_string(*total_timeout);
+      fuzz_args.push_back(total_timeout_str.c_str());
     }
 
     std::string runs_str = "-runs=";
-    if(auto runs = fuzz_command.present<uint32_t>("-r")) {
-        runs_str += std::to_string(*runs);
-        fuzz_args.push_back(runs_str.c_str());
+    if (auto runs = fuzz_command.present<uint32_t>("-r")) {
+      runs_str += std::to_string(*runs);
+      fuzz_args.push_back(runs_str.c_str());
     }
 
     return call_libfuzzer(fuzz_args);
@@ -192,19 +208,22 @@ int main(int argc, char **argv) {
         "-artifact_prefix=" + (file_path.remove_filename() / "").string();
     auto test_timeout = minimize_command.get<uint32_t>("--test-timeout");
     auto test_timeout_str = "-timeout=" + std::to_string(test_timeout);
+    auto jobs = minimize_command.get<uint32_t>("-j");
+    auto jobs_str = "-jobs=" + std::to_string(jobs);
     std::vector<const char *> fuzz_args = {
-        lib_fuzzer_cli.c_str(), "-runs=10000", "-minimize_crash=1",
-        artifact_path.c_str(), test_timeout_str.c_str(), filename.c_str()};
+        lib_fuzzer_cli.c_str(), "-runs=10000",    "-minimize_crash=1",
+        artifact_path.c_str(),  jobs_str.c_str(), test_timeout_str.c_str(),
+        filename.c_str()};
 
     std::string total_timeout_str = "-max_total_time=";
     std::string runs_str = "-runs=";
-    if(auto runs = minimize_command.present<uint32_t>("-r")) {
-        runs_str += std::to_string(*runs);
-        fuzz_args.push_back(runs_str.c_str());
-    } else{
-        auto total_timeout = minimize_command.get<uint32_t>("-t");
-        total_timeout_str += std::to_string(total_timeout);
-        fuzz_args.push_back(total_timeout_str.c_str());
+    if (auto runs = minimize_command.present<uint32_t>("-r")) {
+      runs_str += std::to_string(*runs);
+      fuzz_args.push_back(runs_str.c_str());
+    } else {
+      auto total_timeout = minimize_command.get<uint32_t>("-t");
+      total_timeout_str += std::to_string(total_timeout);
+      fuzz_args.push_back(total_timeout_str.c_str());
     }
 
     return call_libfuzzer(fuzz_args);

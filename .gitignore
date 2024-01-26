@@ -11,3 +11,4 @@ platform/*.a
 
 crash-*
 corpus
+fuzz-*
