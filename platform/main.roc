@@ -8,6 +8,7 @@ platform "roc-fuzz"
     imports [
         Arbitrary,
         Fuzz,
+        Generate,
     ]
     provides [mainForHost]
 
@@ -19,7 +20,7 @@ Command : [
 
 mainForHost : List U8, Command -> (List U8, I8)
 mainForHost = \bytes, cmd ->
-    res = Arbitrary.apply bytes
+    res = Generate.apply bytes Arbitrary.arbitrary
     when cmd is
         Fuzz ->
             when res is
