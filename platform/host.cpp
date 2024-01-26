@@ -274,7 +274,7 @@ std::vector<uint8_t> read_file(char const *filename) {
 }
 
 std::string_view RocStr::as_string_view() {
-  bool small_str = static_cast<ptrdiff_t>(this->len) < 0;
+  bool small_str = static_cast<ptrdiff_t>(this->capacity) < 0;
   const char *data;
   size_t len;
   if (small_str) {
@@ -282,7 +282,7 @@ std::string_view RocStr::as_string_view() {
     len = static_cast<size_t>(data[sizeof(size_t) * 3 - 1] & 0x7F);
   } else {
     data = reinterpret_cast<const char *>(this->bytes);
-    len = this->len;
+    len = (this->len << 1) >> 1;
   }
   return {data, len};
 }

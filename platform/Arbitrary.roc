@@ -38,6 +38,7 @@ ArbitraryU8 := U8 implements [
             arbitrary: arbitraryU8,
             sizeHint: sizeHintU8,
         },
+        Inspect,
     ]
 
 unwrapU8 : ArbitraryU8 -> U8
@@ -56,8 +57,7 @@ ArbitraryStr := Str implements [
             arbitrary: arbitraryStr,
             sizeHint: sizeHintStr,
         },
-        Eq,
-        Hash,
+        Inspect,
     ]
 
 unwrapStr : ArbitraryStr -> Str
@@ -76,8 +76,7 @@ ArbitraryBytes := List U8 implements [
             arbitrary: arbitraryBytes,
             sizeHint: sizeHintBytes,
         },
-        Eq,
-        Hash,
+        Inspect,
     ]
 
 unwrapBytes : ArbitraryBytes -> List U8
