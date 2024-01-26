@@ -41,6 +41,7 @@ const size_t REFCOUNT_MAX = 0;
 
 int fuzz_target(const uint8_t *data, size_t size);
 std::vector<uint8_t> read_file(char const *filename);
+std::filesystem::path default_corpus();
 
 int call_libfuzzer(std::vector<const char *> args) {
   int argc = static_cast<int>(args.size());
@@ -50,13 +51,14 @@ int call_libfuzzer(std::vector<const char *> args) {
 }
 
 int main(int argc, char **argv) {
+  std::filesystem::path DEFAULT_CORPUS = default_corpus();
   argparse::ArgumentParser program("fuzz-target");
 
   argparse::ArgumentParser fuzz_command("fuzz");
-  fuzz_command.add_description("Run the fuzz target and attempt to find bugs");
+  fuzz_command.add_description("Run the fuzz target and attempt to find bugs.");
   fuzz_command.add_argument("-c", "--corpus")
-      .help("The directory where the corpus stored. Defaults to "
-            "\"corpus/<target-name>\".");
+      .help("The directory where the corpus stored.")
+      .default_value(std::string(DEFAULT_CORPUS));
   auto &fuzz_for = fuzz_command.add_mutually_exclusive_group(false);
   fuzz_for.add_argument("-t", "--total-timeout")
       .help("How long in seconds to run fuzzing for.")
@@ -85,7 +87,7 @@ int main(int argc, char **argv) {
 
   argparse::ArgumentParser minimize_command("minimize");
   minimize_command.add_description(
-      "Attempt to minimize a test case to the smallest possible input");
+      "Attempt to minimize a test case to the smallest possible input.");
   auto &minimize_for = minimize_command.add_mutually_exclusive_group(false);
   minimize_for.add_argument("-t", "--total-timeout")
       .help("How long in seconds to run minimizing for.")
@@ -102,7 +104,7 @@ int main(int argc, char **argv) {
       .scan<'u', uint32_t>()
       .nargs(1);
   minimize_command.add_argument("file")
-      .help("File of raw bytes to be minimized")
+      .help("File of raw bytes to be minimized.")
       .required();
   // TODO: Evaluate if Go's aggressive timeout makes sense for Roc:
   minimize_command.add_argument("--test-timeout")
@@ -113,18 +115,27 @@ int main(int argc, char **argv) {
       .nargs(1);
 
   argparse::ArgumentParser show_command("show");
-  show_command.add_description("Show the crash or test case inputs");
+  show_command.add_description("Show the crash or test case inputs.");
   show_command.add_argument("file")
-      .help("File of raw bytes to be formatted and printed")
+      .help("File of raw bytes to be formatted and printed.")
       .required();
+
+  argparse::ArgumentParser reduce_corpus_command("reduce-corpus");
+  reduce_corpus_command.add_description(
+      "Reduces the corpus size by only keeping samples that increase code "
+      "coverage.");
+  reduce_corpus_command.add_argument("-c", "--corpus")
+      .help("The directory where the corpus stored.")
+      .default_value(std::string(DEFAULT_CORPUS));
 
   argparse::ArgumentParser raw_command("raw");
   raw_command.add_description(
-      "Allows raw access to the underlying libFuzzer cli");
+      "Allows raw access to the underlying libFuzzer cli.");
 
   program.add_subparser(fuzz_command);
   program.add_subparser(minimize_command);
   program.add_subparser(show_command);
+  program.add_subparser(reduce_corpus_command);
   program.add_subparser(raw_command);
 
   // No subcommand. Earrly exit with help menu.
@@ -155,6 +166,8 @@ int main(int argc, char **argv) {
       std::cerr << minimize_command;
     } else if (program.is_subcommand_used(show_command)) {
       std::cerr << show_command;
+    } else if (program.is_subcommand_used(reduce_corpus_command)) {
+      std::cerr << reduce_corpus_command;
     } else if (program.is_subcommand_used(raw_command)) {
       std::cerr << raw_command;
     } else {
@@ -164,18 +177,8 @@ int main(int argc, char **argv) {
   }
 
   if (program.is_subcommand_used(fuzz_command)) {
-    std::filesystem::path corpus;
-    if (fuzz_command.is_used("-c")) {
-      corpus = fuzz_command.get<std::string>("-c");
-    } else {
-      auto input = RocList{nullptr, 0, 0};
-      Out out;
-      roc__mainForHost_1_exposed_generic(&out, &input, CMD_NAME);
+    std::filesystem::path corpus = fuzz_command.get<std::string>("-c");
 
-      auto name = out.str.as_string_view();
-      corpus = "corpus";
-      corpus = corpus / name;
-    }
     std::filesystem::create_directories(corpus);
 
     std::string artifact_path = "-artifact_prefix=" + (corpus / "").string();
@@ -240,10 +243,39 @@ int main(int argc, char **argv) {
     roc__mainForHost_1_exposed_generic(&out, &input, CMD_SHOW);
 
     std::cout << out.str.as_string_view() << std::endl;
+  } else if (program.is_subcommand_used(reduce_corpus_command)) {
+    std::filesystem::path corpus =
+        reduce_corpus_command.get<std::string>("-c");
+
+    // TODO: get random temp dir.
+    std::filesystem::path tmp = corpus.parent_path() / "merging";
+    std::filesystem::create_directories(tmp);
+    std::filesystem::create_directories(corpus);
+
+    std::string fuzz_cmd = lib_fuzzer_cli + " " + "-merge=1" + " " +tmp.c_str()+" " +corpus.c_str();
+
+    if (auto ret = std::system(fuzz_cmd.c_str())) {
+      std::cerr << "failed to run fuzzer command to reduce corpus" <<std::endl;
+      return ret;
+    }
+
+    std::filesystem::remove_all(corpus);
+    std::filesystem::rename(tmp, corpus);
   } else {
     std::cerr << program;
   }
   return 0;
+}
+
+std::filesystem::path default_corpus() {
+  auto input = RocList{nullptr, 0, 0};
+  Out out;
+  roc__mainForHost_1_exposed_generic(&out, &input, CMD_NAME);
+
+  auto name = out.str.as_string_view();
+  std::filesystem::path corpus = "corpus";
+  corpus = corpus / name;
+  return corpus;
 }
 
 int fuzz_target(const uint8_t *data, size_t size) {
