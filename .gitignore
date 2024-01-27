@@ -4,6 +4,9 @@ examples/basic
 
 platform/*.a
 
+*.tar
+*.tar.gz
+*.tar.br
 *.ll
 *.o
 
