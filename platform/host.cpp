@@ -187,11 +187,15 @@ int main(int argc, char **argv) {
     std::string artifact_path = "-artifact_prefix=" + (corpus / "").string();
     auto test_timeout = fuzz_command.get<uint32_t>("--test-timeout");
     auto test_timeout_str = "-timeout=" + std::to_string(test_timeout);
-    auto jobs = fuzz_command.get<uint32_t>("-j");
-    auto jobs_str = "-jobs=" + std::to_string(jobs);
     std::vector<const char *> fuzz_args = {
         lib_fuzzer_cli.c_str(), artifact_path.c_str(), test_timeout_str.c_str(),
-        jobs_str.c_str(), corpus.c_str()};
+        corpus.c_str()};
+
+    auto jobs = fuzz_command.get<uint32_t>("-j");
+    auto jobs_str = "-jobs=" + std::to_string(jobs);
+    if(jobs > 1) {
+      fuzz_args.push_back(jobs_str.c_str());
+    }
 
     std::string total_timeout_str = "-max_total_time=";
     if (auto total_timeout = fuzz_command.present<uint32_t>("-t")) {
@@ -214,12 +218,16 @@ int main(int argc, char **argv) {
         "-artifact_prefix=" + (file_path.remove_filename() / "").string();
     auto test_timeout = minimize_command.get<uint32_t>("--test-timeout");
     auto test_timeout_str = "-timeout=" + std::to_string(test_timeout);
-    auto jobs = minimize_command.get<uint32_t>("-j");
-    auto jobs_str = "-jobs=" + std::to_string(jobs);
     std::vector<const char *> fuzz_args = {
         lib_fuzzer_cli.c_str(), "-runs=10000",    "-minimize_crash=1",
-        artifact_path.c_str(),  jobs_str.c_str(), test_timeout_str.c_str(),
+        artifact_path.c_str(),  test_timeout_str.c_str(),
         filename.c_str()};
+
+    auto jobs = minimize_command.get<uint32_t>("-j");
+    auto jobs_str = "-jobs=" + std::to_string(jobs);
+    if(jobs > 1) {
+      fuzz_args.push_back(jobs_str.c_str());
+    }
 
     std::string total_timeout_str = "-max_total_time=";
     std::string runs_str = "-runs=";
