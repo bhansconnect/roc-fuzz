@@ -9,6 +9,8 @@ platform/*.a
 *.tar.br
 *.ll
 *.o
+*.so
+*.dylib
 
 .cache
 
