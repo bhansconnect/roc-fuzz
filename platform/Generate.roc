@@ -93,6 +93,8 @@ expect
         |> apply string
     res == Ok "ab"
 
+# Technically, it would be best to make generators for full range integers that just grab all of the bytes.
+
 u8Between : { startAt : U8, endAt : U8 } -> Generator U8
 u8Between = \{ startAt, endAt } ->
     @Generator \state ->
