@@ -106,7 +106,7 @@ arbitraryU16 =
     |> Generate.map @ArbitraryU16
 
 sizeHintU16 : Phantom ArbitraryU16, U64 -> Size.Hint
-sizeHintU16 = \_, _ -> 1
+sizeHintU16 = \_, _ -> 2
 
 ArbitraryI16 := I16 implements [
         Arbitrary {
@@ -125,7 +125,7 @@ arbitraryI16 =
     |> Generate.map @ArbitraryI16
 
 sizeHintI16 : Phantom ArbitraryI16, U64 -> Size.Hint
-sizeHintI16 = \_, _ -> 1
+sizeHintI16 = \_, _ -> 2
 
 ArbitraryU32 := U32 implements [
         Arbitrary {
@@ -144,7 +144,7 @@ arbitraryU32 =
     |> Generate.map @ArbitraryU32
 
 sizeHintU32 : Phantom ArbitraryU32, U64 -> Size.Hint
-sizeHintU32 = \_, _ -> 1
+sizeHintU32 = \_, _ -> 4
 
 ArbitraryI32 := I32 implements [
         Arbitrary {
@@ -163,7 +163,7 @@ arbitraryI32 =
     |> Generate.map @ArbitraryI32
 
 sizeHintI32 : Phantom ArbitraryI32, U64 -> Size.Hint
-sizeHintI32 = \_, _ -> 1
+sizeHintI32 = \_, _ -> 4
 
 ArbitraryU64 := U64 implements [
         Arbitrary {
@@ -182,7 +182,7 @@ arbitraryU64 =
     |> Generate.map @ArbitraryU64
 
 sizeHintU64 : Phantom ArbitraryU64, U64 -> Size.Hint
-sizeHintU64 = \_, _ -> 1
+sizeHintU64 = \_, _ -> 8
 
 ArbitraryI64 := I64 implements [
         Arbitrary {
@@ -201,7 +201,7 @@ arbitraryI64 =
     |> Generate.map @ArbitraryI64
 
 sizeHintI64 : Phantom ArbitraryI64, U64 -> Size.Hint
-sizeHintI64 = \_, _ -> 1
+sizeHintI64 = \_, _ -> 8
 
 ArbitraryU128 := U128 implements [
         Arbitrary {
@@ -220,7 +220,7 @@ arbitraryU128 =
     |> Generate.map @ArbitraryU128
 
 sizeHintU128 : Phantom ArbitraryU128, U64 -> Size.Hint
-sizeHintU128 = \_, _ -> 1
+sizeHintU128 = \_, _ -> 16
 
 ArbitraryI128 := I128 implements [
         Arbitrary {
@@ -239,7 +239,7 @@ arbitraryI128 =
     |> Generate.map @ArbitraryI128
 
 sizeHintI128 : Phantom ArbitraryI128, U64 -> Size.Hint
-sizeHintI128 = \_, _ -> 1
+sizeHintI128 = \_, _ -> 16
 
 ArbitraryStr := Str implements [
         Arbitrary {
