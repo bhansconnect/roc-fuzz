@@ -5,9 +5,12 @@ interface Size
         andAll,
         or,
         orAll,
+        importDummy,
     ]
     imports [
     ]
+
+importDummy = 0
 
 # Unlike the rust version of arbitrary, our size hint only tracks the minimum size.
 # Looking over their code, the max size is not really used much in practicea and this simplifies the api.

@@ -5,8 +5,13 @@ app "basic"
     imports [
         fuzz.Fuzz.{ Status, Target },
         fuzz.Arbitrary.{ ArbitraryBytes, unwrapBytes },
+        # These two imports are required to work around a roc bug.
+        fuzz.Generate,
+        fuzz.Size,
     ]
     provides [target] to fuzz
+
+expect Generate.importDummy == Size.importDummy
 
 target : Target ArbitraryBytes
 target = {
@@ -23,3 +28,4 @@ test = \data ->
 
         _ ->
             Success
+

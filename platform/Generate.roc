@@ -19,9 +19,12 @@ interface Generate
         i64Between,
         u128Between,
         i128Between,
+        importDummy,
     ]
     imports [
     ]
+
+importDummy = 0
 
 State := List U8
 
