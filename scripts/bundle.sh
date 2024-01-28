@@ -25,5 +25,5 @@ build_target() {
 
 build_target x86_64-macos macos-x64
 build_target aarch64-macos macos-arm64
-build_target x86_64-linux linux-x64
-build_target aarch64-linux linux-arm64
+build_target x86_64-linux-gnu linux-x64
+build_target aarch64-linux-gnu linux-arm64
