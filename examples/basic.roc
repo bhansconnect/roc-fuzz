@@ -20,5 +20,6 @@ test = \data ->
     when bytes is
         ['F', 'U', 'Z', 'Z', ..] ->
             crash "this should be impossible"
+
         _ ->
             Success

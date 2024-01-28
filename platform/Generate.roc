@@ -101,7 +101,7 @@ u8Between = \{ startAt, endAt } ->
         unsignedBetween state startAt endAt
         |> Ok
 
-i8Between : { startAt : I8, endAt : I8 } -> Generator U8
+i8Between : { startAt : I8, endAt : I8 } -> Generator I8
 i8Between = \{ startAt, endAt } ->
     u8Between { startAt: Num.intCast startAt, endAt: Num.intCast endAt }
     |> map Num.intCast
